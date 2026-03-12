@@ -6,6 +6,7 @@ from model.generative.autoencoder import Autoencoder
 from model.dataset import get_datasets
 from model.generative.latent_utils import get_transforms
 
+
 def train():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -23,11 +24,16 @@ def train():
 
     model = Autoencoder().to(device)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=2e-4,
+        weight_decay=1e-5
+    )
 
-    criterion = nn.L1Loss()
+    l1_loss = nn.L1Loss()
+    mse_loss = nn.MSELoss()
 
-    epochs = 30
+    epochs = 2
 
     print("Start Trenning ...")
     
@@ -44,7 +50,10 @@ def train():
 
             recon, _ = model(images)
 
-            loss = criterion(recon, images)
+            l1 = l1_loss(recon, images)
+            mse = mse_loss(recon, images)
+
+            loss = 0.8 * l1 + 0.2 * mse
 
             loss.backward()
 

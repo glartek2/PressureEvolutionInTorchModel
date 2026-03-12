@@ -24,7 +24,7 @@ with torch.no_grad():
 
     recon, z = model(x)
 
-    z_mut = z + torch.randn_like(z) * 0.3
+    z_mut = z + torch.randn_like(z) * 0.1
 
     mutated = model.decoder(z_mut)
 
