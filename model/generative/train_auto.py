@@ -20,23 +20,34 @@ def train():
     train_dataset.transform = get_transforms(train=True)
     test_dataset.transform = get_transforms(train=False)
 
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=4)
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=32,
+        shuffle=True,
+        num_workers=4,
+        pin_memory=True,
+        persistent_workers=True
+    )
 
     model = Autoencoder().to(device)
 
-    optimizer = torch.optim.Adam(
+    model = model.to(memory_format=torch.channels_last)
+
+    optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=2e-4,
-        weight_decay=1e-5
+        weight_decay=1e-4
     )
+
+    scaler = torch.amp.GradScaler("cuda" if torch.cuda.is_available() else "cpu")
 
     l1_loss = nn.L1Loss()
     mse_loss = nn.MSELoss()
 
-    epochs = 2
+    epochs = 1
 
-    print("Start Trenning ...")
-    
+    print("Start Training...")
+
     for epoch in range(epochs):
 
         model.train()
@@ -44,25 +55,27 @@ def train():
 
         for images, _ in train_loader:
 
-            images = images.to(device)
+            images = images.to(device, non_blocking=True)
+            images = images.to(memory_format=torch.channels_last)
 
-            optimizer.zero_grad()
+            optimizer.zero_grad(set_to_none=True)
 
-            recon, _ = model(images)
+            with torch.amp.autocast("cuda" if torch.cuda.is_available() else "cpu"):
 
-            l1 = l1_loss(recon, images)
-            mse = mse_loss(recon, images)
+                recon, _ = model(images)
 
-            loss = 0.8 * l1 + 0.2 * mse
+                l1 = l1_loss(recon, images)
+                mse = mse_loss(recon, images)
 
-            loss.backward()
+                loss = 0.8 * l1 + 0.2 * mse
 
-            optimizer.step()
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
             total_loss += loss.item()
 
-        print(f"Epoch {epoch+1} Loss: {total_loss / len(train_loader)}")
-        print(images.min(), images.max())
+        print(f"Epoch {epoch+1} Loss: {total_loss / len(train_loader):.4f}")
 
     torch.save(model.state_dict(), "model/weights/autoencoder.pt")
 

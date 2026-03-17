@@ -14,6 +14,8 @@ class ResBlock(nn.Module):
         self.norm2 = nn.GroupNorm(8, out_ch)
         self.conv2 = nn.Conv2d(out_ch, out_ch, 3, padding=1)
 
+        self.act = nn.SiLU(inplace=True)
+
         if in_ch != out_ch:
             self.skip = nn.Conv2d(in_ch, out_ch, 1)
         else:
@@ -23,11 +25,8 @@ class ResBlock(nn.Module):
 
         identity = self.skip(x)
 
-        x = F.silu(self.norm1(x))
-        x = self.conv1(x)
-
-        x = F.silu(self.norm2(x))
-        x = self.conv2(x)
+        x = self.conv1(self.act(self.norm1(x)))
+        x = self.conv2(self.act(self.norm2(x)))
 
         return x + identity
 
@@ -48,7 +47,8 @@ class AttentionBlock(nn.Module):
     def forward(self, x):
 
         b, c, h, w = x.shape
-        x_in = x
+
+        residual = x
 
         x = self.norm(x)
         x = x.view(b, c, h*w)
@@ -67,42 +67,47 @@ class AttentionBlock(nn.Module):
         out = self.proj(out)
         out = out.view(b, c, h, w)
 
-        return x_in + out
-    
+        return residual + out
 
 
 class Encoder(nn.Module):
 
-    def __init__(self):
+    def __init__(self, latent_dim=256):
         super().__init__()
+
+        ch = 64
 
         self.layers = nn.Sequential(
 
-            nn.Conv2d(3, 64, 3, padding=1),
+            nn.Conv2d(3, ch, 3, padding=1),
 
-            ResBlock(64, 64),
-            nn.Conv2d(64, 128, 4, stride=2, padding=1),
+            ResBlock(ch, ch),
+            nn.Conv2d(ch, ch*2, 4, stride=2, padding=1),
 
-            ResBlock(128, 128),
-            nn.Conv2d(128, 256, 4, stride=2, padding=1),
+            ResBlock(ch*2, ch*2),
+            nn.Conv2d(ch*2, ch*4, 4, stride=2, padding=1),
 
-            ResBlock(256, 256),
-            nn.Conv2d(256, 256, 4, stride=2, padding=1),
+            ResBlock(ch*4, ch*4),
+            nn.Conv2d(ch*4, ch*4, 4, stride=2, padding=1),
 
-            ResBlock(256, 512),
-            nn.Conv2d(512, 512, 4, stride=2, padding=1),
+            ResBlock(ch*4, ch*6),
+            nn.Conv2d(ch*6, ch*6, 4, stride=2, padding=1),
 
-            ResBlock(512, 512),
-            nn.Conv2d(512, 512, 4, stride=2, padding=1),
+            ResBlock(ch*6, ch*6),
+            nn.Conv2d(ch*6, ch*6, 4, stride=2, padding=1),
 
-            AttentionBlock(512),
+            AttentionBlock(ch*6),
 
-            ResBlock(512, 512)
+            ResBlock(ch*6, ch*6),
         )
 
+        self.to_latent = nn.Conv2d(ch*6, latent_dim, 1)
+
     def forward(self, x):
-        return self.layers(x)
-    
+
+        x = self.layers(x)
+        return self.to_latent(x)
+
 
 class UpBlock(nn.Module):
 
@@ -118,50 +123,55 @@ class UpBlock(nn.Module):
         x = self.conv(x)
 
         return self.res(x)
-    
+
 
 class Decoder(nn.Module):
 
-    def __init__(self):
+    def __init__(self, latent_dim=256):
         super().__init__()
 
+        ch = 64
+
+        self.from_latent = nn.Conv2d(latent_dim, ch*6, 1)
+
         self.mid = nn.Sequential(
-            ResBlock(512, 512),
-            AttentionBlock(512),
-            ResBlock(512, 512),
+            ResBlock(ch*6, ch*6),
+            AttentionBlock(ch*6),
+            ResBlock(ch*6, ch*6),
         )
 
         self.up = nn.Sequential(
 
-            UpBlock(512, 512),
-            UpBlock(512, 256),
-            UpBlock(256, 256),
-            UpBlock(256, 128),
-            UpBlock(128, 64),
+            UpBlock(ch*6, ch*6),
+            UpBlock(ch*6, ch*4),
+            UpBlock(ch*4, ch*4),
+            UpBlock(ch*4, ch*2),
+            UpBlock(ch*2, ch),
         )
 
         self.out = nn.Sequential(
-            nn.GroupNorm(8, 64),
+            nn.GroupNorm(8, ch),
             nn.SiLU(),
-            nn.Conv2d(64, 3, 3, padding=1),
-            nn.Sigmoid()
+            nn.Conv2d(ch, 3, 3, padding=1),
+            nn.Tanh()
         )
 
     def forward(self, x):
 
+        x = self.from_latent(x)
         x = self.mid(x)
         x = self.up(x)
 
         return self.out(x)
-    
+
 
 class Autoencoder(nn.Module):
 
-    def __init__(self):
+    def __init__(self, latent_dim=256):
         super().__init__()
 
-        self.encoder = Encoder()
-        self.decoder = Decoder()
+        self.encoder = Encoder(latent_dim)
+        self.decoder = Decoder(latent_dim)
 
     def forward(self, x):
 
@@ -169,3 +179,4 @@ class Autoencoder(nn.Module):
         recon = self.decoder(z)
 
         return recon, z
+    
