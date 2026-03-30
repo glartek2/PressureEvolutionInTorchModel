@@ -24,8 +24,7 @@ def evaluate_population(decoder, classifier, population, device):
 
         images = decoder(population)
 
-        # ----- DO WIZUALIZACJI -----
-        images_vis = images  # Already in [0,1] range from Sigmoid
+        images_vis = images
         color_penalty = images_vis.std(dim=(1,2,3))
 
         flat = images_vis.view(images_vis.size(0), -1)
@@ -35,7 +34,6 @@ def evaluate_population(decoder, classifier, population, device):
 
         similarity_penalty = similarity.mean(dim=1)
 
-        # ----- DO CLASSIFIERA -----
         images_cls = torch.stack([normalize(img) for img in images_vis])
 
         logits = classifier(images_cls)
@@ -44,6 +42,6 @@ def evaluate_population(decoder, classifier, population, device):
 
         venomous_prob = probs[:,1]
 
-        fitness = venomous_prob - 0.01 * similarity_penalty - 0.01 * color_penalty
+        fitness = 100 * venomous_prob - 50 * similarity_penalty - 30 * color_penalty
 
     return fitness.cpu(), images_vis.cpu()

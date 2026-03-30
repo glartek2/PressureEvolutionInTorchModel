@@ -96,7 +96,7 @@ class Encoder(nn.Module):
             ResBlock(ch*6, ch*6),
             nn.Conv2d(ch*6, ch*6, 4, stride=2, padding=1),
 
-            AttentionBlock(ch*6),
+            #AttentionBlock(ch*6),
 
             ResBlock(ch*6, ch*6),
         )
@@ -136,7 +136,7 @@ class Decoder(nn.Module):
 
         self.mid = nn.Sequential(
             ResBlock(ch*6, ch*6),
-            AttentionBlock(ch*6),
+            #AttentionBlock(ch*6),
             ResBlock(ch*6, ch*6),
         )
 

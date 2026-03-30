@@ -16,8 +16,8 @@ from model.evolution.evolution_engine import evolve
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
-POPULATION_SIZE = 200
-GENERATIONS = 20
+POPULATION_SIZE = 100
+GENERATIONS = 5
 
 
 OUTPUT_DIR = "outputs"
@@ -49,7 +49,7 @@ def main():
     # ----------------------
 
     autoencoder = Autoencoder().to(DEVICE)
-    autoencoder.load_state_dict(torch.load("model/weights/autoencoder.pt"))
+    autoencoder.load_state_dict(torch.load("model/weights/autoencoder_150.pt"))
 
     classifier = get_model().to(DEVICE)
     classifier.load_state_dict(torch.load("model/weights/classifier.pt"))

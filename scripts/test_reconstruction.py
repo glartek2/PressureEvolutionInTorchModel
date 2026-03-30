@@ -10,7 +10,7 @@ device = "cuda"
 
 
 model = Autoencoder().to(device)
-model.load_state_dict(torch.load("model/weights/autoencoder.pt"))
+model.load_state_dict(torch.load("model/weights/autoencoder_150.pt"))
 model.eval()
 
 train_dataset, _ = get_datasets("data/train", "data/test", transform=None)
@@ -24,8 +24,12 @@ with torch.no_grad():
 
     recon, z = model(x)
 
-    z_mut = z + torch.randn_like(z) * 0.1
-
+    z_mut = z + torch.randn_like(z) * 0.05
+    
+    for i in range(1000):
+        z_mut = z_mut + torch.randn_like(z_mut) * 0.05
+    
+    
     mutated = model.decoder(z_mut)
 
     recon = recon.squeeze().cpu()

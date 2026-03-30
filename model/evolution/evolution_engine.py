@@ -44,7 +44,6 @@ def evolve(population, decoder, encoder, classifier, device):
 
     new_population = []
 
-    # ELITISM - keep top 10%
     elite_count = max(1, len(population) // 10)
     best_idx = torch.argsort(fitness, descending=True)[:elite_count]
     new_population.extend(population[best_idx])

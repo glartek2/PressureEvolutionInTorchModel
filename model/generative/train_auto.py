@@ -65,17 +65,20 @@ def train():
                 recon, _ = model(images)
 
                 l1 = l1_loss(recon, images)
-                mse = mse_loss(recon, images)
+                #mse = mse_loss(recon, images)
 
-                loss = 0.8 * l1 + 0.2 * mse
+                loss = l1
 
             scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=10.0)
             scaler.step(optimizer)
             scaler.update()
 
             total_loss += loss.item()
 
         print(f"Epoch {epoch+1} Loss: {total_loss / len(train_loader):.4f}")
+        torch.save(model.state_dict(), f"model/weights/autoencoder_epoch_{epoch+1}.pt")
 
     torch.save(model.state_dict(), "model/weights/autoencoder.pt")
 
