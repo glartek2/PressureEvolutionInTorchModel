@@ -28,6 +28,9 @@ I was simply courious about that (😉) after watching mimicry YouTube video.
 
 ## Method
 
+![Pipeline](./assets/diagram.png)
+
+
 Models are better (more tech) explain in other Readme in ./model
 
 ### 1. Representation Learning
@@ -38,7 +41,7 @@ Models are better (more tech) explain in other Readme in ./model
 
 ### 2. Classification Model
 
-* Train a classifier to predict:
+* Train a classifier (based on ResNet50) to predict:
 
   * `0 → non-venomous`
   * `1 → venomous`
@@ -140,6 +143,7 @@ While the system did not produce realistic mimicry, it successfully demonstrates
 Right now I am putting it on hold at least as long I get my hands on better hardware or web services give me some credits. Main things to do when I will revive project are:
   * New model to do segmentation first
   * Change autoencoder to vae, diffusion or sth else I will learn in future
+  * Some API so it can be tested on github page
 
 ---
 
