@@ -44,9 +44,6 @@ def main():
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    # ----------------------
-    # Load models
-    # ----------------------
 
     autoencoder = Autoencoder().to(DEVICE)
     autoencoder.load_state_dict(torch.load("model/weights/autoencoder_150.pt"))
@@ -58,9 +55,6 @@ def main():
     encoder = autoencoder.encoder
     decoder = autoencoder.decoder
 
-    # ----------------------
-    # Load dataset
-    # ----------------------
 
     transform = get_transforms(train=False)
 
@@ -79,9 +73,6 @@ def main():
         num_workers=0
     )
 
-    # ----------------------
-    # Initial population
-    # ----------------------
 
     population = create_initial_population(
         encoder,
@@ -92,10 +83,6 @@ def main():
 
     print("Initial population:", population.shape)
 
-    # ----------------------
-    # Evolution loop
-    # ----------------------
-
     for generation in range(GENERATIONS):
 
         print(f"\nGeneration {generation}")
@@ -105,7 +92,8 @@ def main():
             decoder,
             encoder,
             classifier,
-            DEVICE
+            DEVICE,
+            generation
         )
 
         print("Fitness mean:", fitness.mean().item())

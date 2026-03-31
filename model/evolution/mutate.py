@@ -1,13 +1,18 @@
 import torch
 
 
-def mutate(population, mutation_prob=0.5, sigma=0.5):
+def mutate_towards(population, guide, alpha=0.5, sigma=0.2):
 
-    mask = torch.rand_like(population) < mutation_prob
+    guide = guide.unsqueeze(0)
+
+    direction = guide - population
     noise = torch.randn_like(population) * sigma
 
-    mutated = population + mask * noise
+    mutated = population + alpha * direction + noise
 
-    mutated = torch.clamp(mutated, -5, 5)
+    return torch.clamp(mutated, -5, 5)
 
-    return mutated
+
+def crossover(parent1, parent2):
+    alpha = torch.rand(1).item()
+    return alpha * parent1 + (1 - alpha) * parent2
